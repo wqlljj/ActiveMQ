@@ -5,6 +5,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -23,6 +24,7 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import java.util.ArrayList;
 
 import activemq.xmg.com.activemq_mqtt.R;
+import activemq.xmg.com.activemq_mqtt.adapter.MessageAdapter;
 import activemq.xmg.com.activemq_mqtt.bean.Message;
 import activemq.xmg.com.activemq_mqtt.callback.ConnectCallBackHandler;
 import activemq.xmg.com.activemq_mqtt.callback.MqttCallbackHandler;
@@ -39,6 +41,8 @@ public class MainActivity extends AppCompatActivity {
     EditText edServer;
     @Bind(R.id.ed_port)
     EditText edPort;
+    @Bind(R.id.msg)
+    EditText msg;
     @Bind(R.id.btn_connect)
     Button btnConnect;
     @Bind(R.id.send)
@@ -51,6 +55,9 @@ public class MainActivity extends AppCompatActivity {
     private MqttConnectOptions conOpt;
 
     ArrayList<Message> messages = new ArrayList<>();
+    @Bind(R.id.message)
+    private RecyclerView messageRecyclerView;
+    private MessageAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,6 +71,8 @@ public class MainActivity extends AppCompatActivity {
             edServer = findViewById(R.id.ed_server);
             edPort = findViewById(R.id.ed_port);
             send = findViewById(R.id.send);
+            msg = findViewById(R.id.msg);
+            messageRecyclerView = findViewById(R.id.message);
         }
         btnConnect.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -82,11 +91,13 @@ public class MainActivity extends AppCompatActivity {
             int i = 0;
             @Override
             public void onClick(View v) {
-                String msg = "你好"+(i++);
-                Toast.makeText(MainActivity.this, "发送："+msg, Toast.LENGTH_SHORT).show();
-                publish(msg);
+                String m = msg.getText().toString();
+                Toast.makeText(MainActivity.this, "发送："+m, Toast.LENGTH_SHORT).show();
+                publish(m);
             }
         });
+        adapter = new MessageAdapter();
+        messageRecyclerView.setAdapter(adapter);
     }
 
     private void startConnect(String clientID, String serverIP, String port) {
@@ -127,6 +138,7 @@ public class MainActivity extends AppCompatActivity {
         client.setCallback(new MqttCallback() {
             @Override
             public void connectionLost(Throwable throwable) {
+                showMsg(new Message("服务器","连接断开",true));
                 Log.i(TAG, "connectionLost: ");
             }
 
@@ -136,12 +148,13 @@ public class MainActivity extends AppCompatActivity {
                 String str2 = topic + ";qos:" + mqttMessage.getQos() + ";retained:" + mqttMessage.isRetained();
                 Log.i(TAG, "messageArrived:" + str1);
                 Log.i(TAG, "messageArrived: "+str2);
-               showMsg(new Message("",true));
+               showMsg(new Message("服务器",str1,true));
             }
 
             @Override
             public void deliveryComplete(IMqttDeliveryToken iMqttDeliveryToken) {
                 Log.i(TAG, "deliveryComplete: ");
+                showMsg(new Message("服务器","deliveryComplete",true));
             }
         });
 
@@ -184,7 +197,8 @@ public class MainActivity extends AppCompatActivity {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(MainActivity.this, message.string, Toast.LENGTH_SHORT).show();
+                adapter.addMessage(message);
+                adapter.notifyItemInserted(adapter.getItemCount()-1);
             }
         });
     }
@@ -212,11 +226,12 @@ public class MainActivity extends AppCompatActivity {
             return false;
         }
     }
-    public static void publish(String msg){
+    public void publish(String msg){
         String topic = "test";
         Integer qos = 0;
         Boolean retained = false;
         try {
+            showMsg(new Message("ME",msg,true));
             client.publish(topic, msg.getBytes(), qos.intValue(), retained.booleanValue());
         } catch (MqttException e) {
             e.printStackTrace();
@@ -229,7 +244,8 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onSuccess(IMqttToken arg0) {
-            Log.i(TAG, "连接成功 ");
+//            Log.i(TAG, "连接成功 ");
+            showMsg(new Message("","连接成功",true));
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -248,6 +264,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onFailure(IMqttToken arg0, Throwable arg1) {
             arg1.printStackTrace();
+            showMsg(new Message("","连接断开",true));
             // 连接失败，重连
         }
     };

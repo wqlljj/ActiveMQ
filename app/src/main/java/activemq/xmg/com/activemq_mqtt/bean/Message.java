@@ -9,12 +9,20 @@ package activemq.xmg.com.activemq_mqtt.bean;
 
 public class Message {
     public Long time;
+    public String name;
     public String string;
     public boolean isLeft=true;
 
 
     public Message(String string, boolean isLeft) {
         time = System.currentTimeMillis();
+        this.string = string;
+        this.isLeft = isLeft;
+    }
+
+    public Message(String name,String string, boolean isLeft) {
+        time = System.currentTimeMillis();
+        this.name = name;
         this.string = string;
         this.isLeft = isLeft;
     }
