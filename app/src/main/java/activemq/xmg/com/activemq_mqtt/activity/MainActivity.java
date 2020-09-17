@@ -56,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
 
     ArrayList<Message> messages = new ArrayList<>();
     @Bind(R.id.message)
-    private RecyclerView messageRecyclerView;
+     RecyclerView messageRecyclerView;
     private MessageAdapter adapter;
 
     @Override
