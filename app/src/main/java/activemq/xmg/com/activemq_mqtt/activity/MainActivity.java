@@ -1,5 +1,6 @@
 package activemq.xmg.com.activemq_mqtt.activity;
 
+import android.accounts.NetworkErrorException;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -22,6 +23,7 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 import java.util.ArrayList;
+import java.util.UUID;
 
 import activemq.xmg.com.activemq_mqtt.R;
 import activemq.xmg.com.activemq_mqtt.adapter.MessageAdapter;
@@ -74,17 +76,33 @@ public class MainActivity extends AppCompatActivity {
             msg = findViewById(R.id.msg);
             messageRecyclerView = findViewById(R.id.message);
         }
+        edClientId.setText("wangqi_"+ UUID.randomUUID().toString().substring(0,4));
         btnConnect.setOnClickListener(new View.OnClickListener() {
+            long lastTime = 0;
             @Override
             public void onClick(View view) {
-                Log.d("MainActivity","MainActivity/btnConnect");
-                //获取用户id    
-                 clientID = edClientId.getText().toString().trim();
-                //获取ip地址
-                serverIP = edServer.getText().toString().trim();
-                //获取端口号
-                port = edPort.getText().toString().trim();
-                startConnect(clientID,serverIP,port);
+                if(System.currentTimeMillis() - lastTime<1000){
+                    return;
+                }
+                lastTime  =System.currentTimeMillis();
+                if(client==null||!client.isConnected()) {
+                    //获取用户id
+                    clientID = edClientId.getText().toString().trim();
+                    //获取ip地址
+                    serverIP = edServer.getText().toString().trim();
+                    //获取端口号
+                    port = edPort.getText().toString().trim();
+                    startConnect(clientID, serverIP, port);
+                }else if(client!=null){
+                    try {
+                        client.disconnect();
+                        client.close();
+                    } catch (MqttException e) {
+                        e.printStackTrace();
+                    }
+                    client = null;
+                    showMsg(new Message("A","关闭连接",true));
+                }
             }
         });
         send.setOnClickListener(new View.OnClickListener() {
@@ -104,35 +122,7 @@ public class MainActivity extends AppCompatActivity {
         //服务器地址
         String  uri ="tcp://";
         uri=uri+serverIP+":"+port;
-        Log.d("MainActivity",uri+"  "+clientID);
-//        /**
-//         * 连接的选项
-//         */
-//        MqttConnectOptions conOpt = new MqttConnectOptions();
-//        /**设计连接超时时间*/
-//        conOpt.setConnectionTimeout(3000);
-//        /**设计心跳间隔时间300秒*/
-//        conOpt.setKeepAliveInterval(300);
-//        conOpt.setUserName("admin");
-//        conOpt.setPassword("password".toCharArray());
-//        /**
-//         * 创建连接对象
-//         */
-//         client = new MqttAndroidClient(this,uri, clientID);
-//        /**
-//         * 连接后设计一个回调
-//         */
-//        client.setCallback(new MqttCallbackHandler(this, clientID));
-//        /**
-//         * 开始连接服务器，参数：ConnectionOptions,  IMqttActionListener
-//         */
-//        try {
-//            client.connect(conOpt, this, new ConnectCallBackHandler(this));
-//        } catch (MqttException e) {
-//            e.printStackTrace();
-//        }
 
-        //
         client = new MqttAndroidClient(this, uri, clientID);
         // 设置MQTT监听并且接受消息
         client.setCallback(new MqttCallback() {
@@ -154,7 +144,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void deliveryComplete(IMqttDeliveryToken iMqttDeliveryToken) {
                 Log.i(TAG, "deliveryComplete: ");
-                showMsg(new Message("服务器","deliveryComplete",true));
             }
         });
 
@@ -181,7 +170,6 @@ public class MainActivity extends AppCompatActivity {
             try {
                 conOpt.setWill(topic, message.getBytes(), qos.intValue(), retained.booleanValue());
             } catch (Exception e) {
-                Log.i(TAG, "Exception Occured", e);
                 doConnect = false;
                 iMqttActionListener.onFailure(null, e);
             }
@@ -190,8 +178,6 @@ public class MainActivity extends AppCompatActivity {
         if (doConnect) {
             doClientConnection();
         }
-
-
     }
     private void showMsg(final Message message){
         runOnUiThread(new Runnable() {
@@ -210,6 +196,8 @@ public class MainActivity extends AppCompatActivity {
             } catch (MqttException e) {
                 e.printStackTrace();
             }
+        }else if(!isConnectIsNomarl()){
+            iMqttActionListener.onFailure(null,new NetworkErrorException("网络不可用"));
         }
 
     }
@@ -245,7 +233,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onSuccess(IMqttToken arg0) {
 //            Log.i(TAG, "连接成功 ");
-            showMsg(new Message("","连接成功",true));
+            showMsg(new Message("服务器","连接成功",true));
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -264,7 +252,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onFailure(IMqttToken arg0, Throwable arg1) {
             arg1.printStackTrace();
-            showMsg(new Message("","连接断开",true));
+            showMsg(new Message("A","连接断开",true));
             // 连接失败，重连
         }
     };
