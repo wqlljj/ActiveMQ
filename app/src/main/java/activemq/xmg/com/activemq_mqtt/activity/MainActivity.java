@@ -97,7 +97,7 @@ public class MainActivity extends AppCompatActivity {
                     try {
                         client.disconnect();
                         client.close();
-                    } catch (MqttException e) {
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
                     client = null;
