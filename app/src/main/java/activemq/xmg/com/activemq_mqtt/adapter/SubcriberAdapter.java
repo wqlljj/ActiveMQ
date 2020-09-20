@@ -88,11 +88,11 @@ public class SubcriberAdapter extends BaseAdapter {
             if(message.isLeft){
                 viewHolder.rlLeft.setVisibility(View.VISIBLE);
                 viewHolder.rlRigth.setVisibility(View.GONE);
-                viewHolder.tvLeft.setText(message.string);
+                viewHolder.tvLeft.setText(message.data);
             }else{
                 viewHolder.rlLeft.setVisibility(View.GONE);
                 viewHolder.rlRigth.setVisibility(View.VISIBLE);
-                viewHolder.tvRigth.setText(message.string);
+                viewHolder.tvRigth.setText(message.data);
             }
         }
         return view;

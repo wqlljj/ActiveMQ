@@ -23,6 +23,10 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
 }
 
 dependencies {
@@ -43,4 +47,7 @@ dependencies {
 
     //event bus
     implementation 'org.greenrobot:eventbus:3.0.0'
+    implementation 'com.google.code.gson:gson:2.8.6'
+    compile('com.github.hotchemi:permissionsdispatcher:3.1.0') { exclude module: 'support-v13' }
+    annotationProcessor 'com.github.hotchemi:permissionsdispatcher-processor:3.1.0'
 }

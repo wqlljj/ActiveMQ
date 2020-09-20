@@ -43,7 +43,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
         int index = 0;
         if(message.isLeft){
             viewHolder.itemView.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
-            ss.append(message.name+":"+message.string);
+            ss.append(message.name+":"+message.data);
             index = ss.length();
             ss.append(sdf.format(new Date(message.time)));
             RelativeSizeSpan relativeSizeSpan = new RelativeSizeSpan(0.5f);
@@ -52,7 +52,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
             viewHolder.itemView.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
             ss.append(sdf.format(new Date(message.time)));
             index = ss.length();
-            ss.append(message.string+":"+message.name);
+            ss.append(message.data+":"+message.name);
             RelativeSizeSpan relativeSizeSpan = new RelativeSizeSpan(0.5f);
             ss.setSpan(relativeSizeSpan,0,index, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }

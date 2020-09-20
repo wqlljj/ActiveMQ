@@ -3,6 +3,7 @@
     package="activemq.xmg.com.activemq_mqtt">
 
     <!-- Permissions the Application Requires -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
@@ -22,15 +23,9 @@
             </intent-filter>
         </activity>
 
-        <!-- 订阅界面 -->
-        <activity android:name=".activity.SubscriberActivity" />
-
         <!-- Mqtt Service -->
         <service android:name="org.eclipse.paho.android.service.MqttService" />
 
-        <activity android:name=".activity.HomeActivity" />
-        <activity android:name=".activity.PublishActivity"></activity>
-        <activity android:name=".activity.ChatActivity"></activity>
     </application>
 
 </manifest>

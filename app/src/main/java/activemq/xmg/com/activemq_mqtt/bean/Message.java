@@ -1,5 +1,7 @@
 package activemq.xmg.com.activemq_mqtt.bean;
 
+import android.util.Log;
+
 /**
  * Description :
  * Author : liujun
@@ -8,23 +10,48 @@ package activemq.xmg.com.activemq_mqtt.bean;
  */
 
 public class Message {
+    public static final int TYPE_MESSAGE = 0;
+    public static final int TYPE_HEARTBEAT = 1;
+    public static final int TYPE_DEVICE = 2;
+
     public Long time;
     public String name;
-    public String string;
-    public boolean isLeft=true;
+    public String data;
+    //类型
+    public int type = 0;
+
+    public transient boolean isLeft=true;
 
 
-    public Message(String string, boolean isLeft) {
+    public Message(String data, boolean isLeft) {
         time = System.currentTimeMillis();
-        this.string = string;
+        this.data = data;
         this.isLeft = isLeft;
     }
 
-    public Message(String name,String string, boolean isLeft) {
-        time = System.currentTimeMillis();
+    public Message(String name, int type, boolean isLeft) {
         this.name = name;
-        this.string = string;
+        this.type = type;
         this.isLeft = isLeft;
     }
 
+    public Message(String name, String data, boolean isLeft) {
+        time = System.currentTimeMillis();
+        type = Message.TYPE_MESSAGE;
+        this.name = name;
+        this.data = data;
+        this.isLeft = isLeft;
+        Log.i("MQTT", "Message: "+this);
+    }
+
+    @Override
+    public String toString() {
+        return "Message{" +
+                "time=" + time +
+                ", name='" + name + '\'' +
+                ", data='" + data + '\'' +
+                ", type=" + type +
+                ", isLeft=" + isLeft +
+                '}';
+    }
 }

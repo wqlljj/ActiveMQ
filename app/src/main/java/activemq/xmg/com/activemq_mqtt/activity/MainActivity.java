@@ -5,13 +5,17 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.gson.Gson;
 
 import org.eclipse.paho.android.service.MqttAndroidClient;
 import org.eclipse.paho.client.mqttv3.IMqttActionListener;
@@ -22,18 +26,20 @@ import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.UUID;
 
+import activemq.xmg.com.activemq_mqtt.Constants;
 import activemq.xmg.com.activemq_mqtt.R;
 import activemq.xmg.com.activemq_mqtt.adapter.MessageAdapter;
 import activemq.xmg.com.activemq_mqtt.bean.Message;
-import activemq.xmg.com.activemq_mqtt.callback.ConnectCallBackHandler;
-import activemq.xmg.com.activemq_mqtt.callback.MqttCallbackHandler;
+import activemq.xmg.com.activemq_mqtt.moudle.alarm.AlarmBean;
+import activemq.xmg.com.activemq_mqtt.moudle.alarm.AlarmManager;
+import activemq.xmg.com.activemq_mqtt.moudle.util.SharePreferenceUtils;
 import butterknife.Bind;
 import butterknife.ButterKnife;
-
-import static android.R.attr.port;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -49,24 +55,28 @@ public class MainActivity extends AppCompatActivity {
     Button btnConnect;
     @Bind(R.id.send)
     Button send;
-    private String clientID;
+    @Bind(R.id.heart)
+    TextView heart;
     private String serverIP;
     private String port;
     private static MqttAndroidClient client;
     private String TAG = "MainActivity";
     private MqttConnectOptions conOpt;
 
-    ArrayList<Message> messages = new ArrayList<>();
     @Bind(R.id.message)
      RecyclerView messageRecyclerView;
     private MessageAdapter adapter;
+
+    String device = "";
+
+    Handler handler = new Handler();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
-        setTitle("即时通讯");
+        setTitle("MQ CONTROL");
         if(btnConnect == null) {
             btnConnect = findViewById(R.id.btn_connect);
             edClientId = findViewById(R.id.ed_client_id);
@@ -76,7 +86,8 @@ public class MainActivity extends AppCompatActivity {
             msg = findViewById(R.id.msg);
             messageRecyclerView = findViewById(R.id.message);
         }
-        edClientId.setText("wangqi_"+ UUID.randomUUID().toString().substring(0,4));
+        Constants.clientID = "wangqi_" + UUID.randomUUID().toString().substring(0, 4);
+        edClientId.setText( Constants.clientID);
         btnConnect.setOnClickListener(new View.OnClickListener() {
             long lastTime = 0;
             @Override
@@ -86,14 +97,16 @@ public class MainActivity extends AppCompatActivity {
                 }
                 lastTime  =System.currentTimeMillis();
                 if(client==null||!client.isConnected()) {
+                    btnConnect.setText("断开连接");
                     //获取用户id
-                    clientID = edClientId.getText().toString().trim();
+                    Constants.clientID = edClientId.getText().toString().trim();
                     //获取ip地址
                     serverIP = edServer.getText().toString().trim();
                     //获取端口号
                     port = edPort.getText().toString().trim();
-                    startConnect(clientID, serverIP, port);
+                    startConnect( Constants.clientID, serverIP, port);
                 }else if(client!=null){
+                    btnConnect.setText("连接服务器");
                     try {
                         client.disconnect();
                         client.close();
@@ -116,8 +129,17 @@ public class MainActivity extends AppCompatActivity {
         });
         adapter = new MessageAdapter();
         messageRecyclerView.setAdapter(adapter);
+        SharePreferenceUtils.setContext(this);
+        AlarmManager.init(this);
     }
 
+    final Runnable heartBeatTimeOut = new Runnable() {
+        @Override
+        public void run() {
+            AlarmManager.getDefault().startAlarm(new AlarmBean(AlarmBean.LEVEL_CARE, AlarmBean.TYPE_VIBRATOR, "心跳超时"));
+            handler.postDelayed(heartBeatTimeOut, 90000);
+        }
+    };
     private void startConnect(String clientID, String serverIP, String port) {
         //服务器地址
         String  uri ="tcp://";
@@ -126,6 +148,11 @@ public class MainActivity extends AppCompatActivity {
         client = new MqttAndroidClient(this, uri, clientID);
         // 设置MQTT监听并且接受消息
         client.setCallback(new MqttCallback() {
+
+            private Date date= new Date(0);
+            private Gson gson = new Gson();
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy:HH:dd HH:mm:ss");
+
             @Override
             public void connectionLost(Throwable throwable) {
                 showMsg(new Message("服务器","连接断开",true));
@@ -135,10 +162,32 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void messageArrived(String topic, MqttMessage mqttMessage) throws Exception {
                 final String str1 = new String(mqttMessage.getPayload());
-                String str2 = topic + ";qos:" + mqttMessage.getQos() + ";retained:" + mqttMessage.isRetained();
-                Log.i(TAG, "messageArrived:" + str1);
-                Log.i(TAG, "messageArrived: "+str2);
-               showMsg(new Message("服务器",str1,true));
+                Log.i(TAG, "mqtt messageArrived: "+str1);
+                Message message = gson.fromJson(str1, Message.class);
+                switch (message.type){
+                    case Message.TYPE_DEVICE:
+                        device = message.name;
+                        handler.postDelayed(heartBeatTimeOut,60000);
+                        break;
+                    case Message.TYPE_HEARTBEAT:
+                        if(device.equals(message.name)) {
+                            date.setTime(message.time);
+                            settext(heart,sdf.format(date));
+                            handler.removeCallbacks(heartBeatTimeOut);
+                            handler.postDelayed(heartBeatTimeOut, 60000);
+                        }else{
+                            if(device.equals("")){
+                                device = message.name;
+                                showMsg(new Message("Sys","新用户接入："+message.name,true));
+                            }
+                            settext(heart,"新用户接入："+message.name);
+                        }
+                        break;
+                    case Message.TYPE_MESSAGE:
+                        showMsg(message);
+                        break;
+                }
+
             }
 
             @Override
@@ -162,13 +211,12 @@ public class MainActivity extends AppCompatActivity {
         // last will message
         boolean doConnect = true;
         String message = "{\"terminal_uid\":\"" + clientID + "\"}";
-        String topic = "test";
         Integer qos = 0;
         Boolean retained = false;
-        if ((!message.equals("")) || (!topic.equals(""))) {
+        if ((!message.equals("")) || (!Constants.TOPIC_CLIENT.equals(""))) {
             // 最后的遗嘱
             try {
-                conOpt.setWill(topic, message.getBytes(), qos.intValue(), retained.booleanValue());
+                conOpt.setWill(Constants.TOPIC_CLIENT, message.getBytes(), qos.intValue(), retained.booleanValue());
             } catch (Exception e) {
                 doConnect = false;
                 iMqttActionListener.onFailure(null, e);
@@ -178,6 +226,14 @@ public class MainActivity extends AppCompatActivity {
         if (doConnect) {
             doClientConnection();
         }
+    }
+    private void settext(final TextView tv, final String msg){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                tv.setText(msg);
+            }
+        });
     }
     private void showMsg(final Message message){
         runOnUiThread(new Runnable() {
@@ -215,12 +271,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     public void publish(String msg){
-        String topic = "test";
         Integer qos = 0;
         Boolean retained = false;
         try {
             showMsg(new Message("ME",msg,true));
-            client.publish(topic, msg.getBytes(), qos.intValue(), retained.booleanValue());
+            client.publish(Constants.TOPIC_CLIENT, msg.getBytes(), qos.intValue(), retained.booleanValue());
         } catch (MqttException e) {
             e.printStackTrace();
         }
@@ -243,7 +298,8 @@ public class MainActivity extends AppCompatActivity {
             });
             try {
                 // 订阅myTopic话题
-                client.subscribe("test", 1);
+                client.subscribe(Constants.TOPIC_CONTROL, 1);
+                publish(new Gson().toJson(new Message( Constants.clientID,Message.TYPE_DEVICE,false)));
             } catch (MqttException e) {
                 e.printStackTrace();
             }
@@ -270,6 +326,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        AlarmManager.getDefault().destroy();
+        SharePreferenceUtils.setContext(null);
         if(client!=null)
             try {
                 client.disconnect();
