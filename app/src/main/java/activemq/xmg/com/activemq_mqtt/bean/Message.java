@@ -13,6 +13,7 @@ public class Message {
     public static final int TYPE_MESSAGE = 0;
     public static final int TYPE_HEARTBEAT = 1;
     public static final int TYPE_DEVICE = 2;
+    public static final int TYPE_ALARM = 3;
 
     public Long time;
     public String name;
@@ -29,10 +30,20 @@ public class Message {
         this.isLeft = isLeft;
     }
 
-    public Message(String name, int type, boolean isLeft) {
+    public Message(String name, int type, String data, boolean isLeft) {
+        time = System.currentTimeMillis();
         this.name = name;
         this.type = type;
         this.isLeft = isLeft;
+        this.data = data == null?getMsg(type):data;
+    }
+
+    private String getMsg(int type) {
+        switch (type){
+            case TYPE_DEVICE:
+                return "获取设备信息";
+        }
+        return "指令："+type;
     }
 
     public Message(String name, String data, boolean isLeft) {

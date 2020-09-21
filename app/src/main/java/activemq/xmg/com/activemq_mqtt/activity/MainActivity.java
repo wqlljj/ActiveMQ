@@ -60,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
     private String serverIP;
     private String port;
     private static MqttAndroidClient client;
-    private String TAG = "MainActivity";
+    private String TAG = "MqttActivity";
     private MqttConnectOptions conOpt;
 
     @Bind(R.id.message)
@@ -270,12 +270,26 @@ public class MainActivity extends AppCompatActivity {
             return false;
         }
     }
+    public void publishCMD(int type){
+        Integer qos = 0;
+        Boolean retained = false;
+        try {
+            Message me = new Message( Constants.clientID,type,false);
+            showMsg(me);
+            Log.i(TAG, "publish: "+Constants.TOPIC_CLIENT+"  "+me.toString());
+            client.publish(Constants.TOPIC_CLIENT, me.toString().getBytes(), qos.intValue(), retained.booleanValue());
+        } catch (MqttException e) {
+            e.printStackTrace();
+        }
+    }
     public void publish(String msg){
         Integer qos = 0;
         Boolean retained = false;
         try {
-            showMsg(new Message("ME",msg,true));
-            client.publish(Constants.TOPIC_CLIENT, msg.getBytes(), qos.intValue(), retained.booleanValue());
+            Message me = new Message("ME", msg, false);
+            showMsg(me);
+            Log.i(TAG, "publish: "+Constants.TOPIC_CLIENT+"  "+me.toString());
+            client.publish(Constants.TOPIC_CLIENT, me.toString().getBytes(), qos.intValue(), retained.booleanValue());
         } catch (MqttException e) {
             e.printStackTrace();
         }
@@ -297,9 +311,10 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
             try {
+                Log.i(TAG, "onSuccess: subscribe "+Constants.TOPIC_CONTROL);
                 // 订阅myTopic话题
                 client.subscribe(Constants.TOPIC_CONTROL, 1);
-                publish(new Gson().toJson(new Message( Constants.clientID,Message.TYPE_DEVICE,false)));
+                publishCMD(Message.TYPE_DEVICE);
             } catch (MqttException e) {
                 e.printStackTrace();
             }

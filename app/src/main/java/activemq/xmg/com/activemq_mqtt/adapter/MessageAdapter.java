@@ -50,11 +50,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
             ss.setSpan(relativeSizeSpan,index,ss.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }else{
             viewHolder.itemView.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-            ss.append(sdf.format(new Date(message.time)));
-            index = ss.length();
-            ss.append(message.data+":"+message.name);
-            RelativeSizeSpan relativeSizeSpan = new RelativeSizeSpan(0.5f);
-            ss.setSpan(relativeSizeSpan,0,index, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            ss.append(message.data);
         }
         viewHolder.msg.setText(ss);
     }
