@@ -270,11 +270,11 @@ public class MainActivity extends AppCompatActivity {
             return false;
         }
     }
-    public void publishCMD(int type){
+    public void publishCMD(int type,String data){
         Integer qos = 0;
         Boolean retained = false;
         try {
-            Message me = new Message( Constants.clientID,type,false);
+            Message me = new Message( Constants.clientID,type,data,false);
             showMsg(me);
             Log.i(TAG, "publish: "+Constants.TOPIC_CLIENT+"  "+me.toString());
             client.publish(Constants.TOPIC_CLIENT, me.toString().getBytes(), qos.intValue(), retained.booleanValue());
@@ -314,7 +314,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.i(TAG, "onSuccess: subscribe "+Constants.TOPIC_CONTROL);
                 // 订阅myTopic话题
                 client.subscribe(Constants.TOPIC_CONTROL, 1);
-                publishCMD(Message.TYPE_DEVICE);
+                publishCMD(Message.TYPE_DEVICE,null);
             } catch (MqttException e) {
                 e.printStackTrace();
             }
